@@ -225,7 +225,7 @@ export function InputBar({
 
   return (
     <div className="w-full flex justify-center px-4 pb-6">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-4xl flex flex-col">
         {/* Hint chips (hide while typing) */}
         {inputText.trim().length === 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2 mb-4 px-3">
@@ -238,7 +238,7 @@ export function InputBar({
                   text-xs md:text-sm rounded-full px-3 py-1.5
                   bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700
                   border border-slate-200 dark:border-slate-700
-                  text-slate-700 dark:text-slate-200 transition-all duration-200
+                  text-slate-700 dark:text-slate-200 transition-all duration-300
                   hover:shadow-sm hover:scale-105 active:scale-95
                 "
                 aria-label={`Use hint: ${hint}`}
@@ -250,124 +250,129 @@ export function InputBar({
           </div>
         )}
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            void handleSend()
-          }}
-          className="w-full"
-        >
-          <div
-            className="
-              relative w-full max-w-3xl mx-auto
-              rounded-3xl border border-slate-200 dark:border-slate-700
-              bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm
-              shadow-lg hover:shadow-xl focus-within:shadow-xl 
-              transition-all duration-300
-            "
+        {/* Input container with conditional margin */}
+        <div className={`transition-all duration-300 ${inputText.trim().length ? "mt-6" : "mt-0"}`}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleSend()
+            }}
+            className="w-full"
           >
-            {/* Utilities row */}
-            <div className="flex items-center gap-1 px-4 pt-3 text-slate-500 dark:text-slate-400">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="New prompt section"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="Attach file"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title="Insert image"
-              >
-                <ImageIcon className="w-4 h-4" />
-              </Button>
-              <div className="ml-auto text-[11px] px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                {inputText.length} chars
-                {isExpanding && <span className="ml-1 opacity-70">(scroll)</span>}
-              </div>
-            </div>
-
-            {/* Textarea + mic + send */}
-            <div className="flex items-end gap-3 p-4 pt-2">
-              <Textarea
-                ref={textareaRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={placeholder}
-                disabled={isTyping || isDisabled}
-                rows={1}
-                className="
-                  flex-1 min-h-[48px] max-h-[240px] resize-none border-0 bg-transparent
-                  text-base leading-6 placeholder:text-slate-400 dark:placeholder:text-slate-500
-                  focus-visible:ring-0 focus-visible:ring-offset-0 px-0
-                  scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600
-                "
-                aria-label="Message input"
-              />
-
-              <div className="flex items-center gap-2 pb-1">
+            <div
+              className="
+                relative w-full max-w-3xl mx-auto
+                rounded-3xl border border-slate-200 dark:border-slate-700
+                bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm
+                shadow-lg hover:shadow-xl focus-within:shadow-xl 
+                transition-all duration-300
+              "
+              style={{ willChange: "transform" }}
+            >
+              {/* Utilities row */}
+              <div className="flex items-center gap-1 px-4 pt-3 text-slate-500 dark:text-slate-400">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={toggleRecording}
-                  disabled={isTyping || isDisabled}
-                  aria-label={isRecording ? "Stop recording" : "Start recording"}
-                  title={isRecording ? "Stop recording" : "Start recording"}
-                  className={`h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors ${
-                    isRecording ? "text-rose-500" : ""
-                  }`}
+                  className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-300"
+                  title="New prompt section"
                 >
-                  {isRecording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  <Plus className="w-4 h-4" />
                 </Button>
-
                 <Button
-                  type="submit"
+                  type="button"
+                  variant="ghost"
                   size="icon"
-                  disabled={!inputText.trim() || isTyping || isDisabled}
-                  className="
-                    h-11 w-11 rounded-full
-                    bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700
-                    disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-700 dark:disabled:to-slate-600
-                    text-white shadow-lg hover:shadow-xl
-                    transition-all duration-200 transform hover:scale-105 active:scale-95
-                  "
-                  aria-label="Send message"
-                  title="Send message"
+                  className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-300"
+                  title="Attach file"
                 >
-                  {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  <Paperclip className="w-4 h-4" />
                 </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-300"
+                  title="Insert image"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </Button>
+                <div className="ml-auto text-[11px] px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-300">
+                  {inputText.length} chars
+                  {isExpanding && <span className="ml-1 opacity-70">(scroll)</span>}
+                </div>
+              </div>
+
+              {/* Textarea + mic + send */}
+              <div className="flex items-end gap-3 p-4 pt-2">
+                <Textarea
+                  ref={textareaRef}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={placeholder}
+                  disabled={isTyping || isDisabled}
+                  rows={1}
+                  className="
+                    flex-1 min-h-[48px] max-h-[240px] resize-none border-0 bg-transparent
+                    text-base leading-6 placeholder:text-slate-400 dark:placeholder:text-slate-500
+                    focus-visible:ring-0 focus-visible:ring-offset-0 px-0
+                    scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600
+                    transition-colors duration-300
+                  "
+                  aria-label="Message input"
+                />
+
+                <div className="flex items-center gap-2 pb-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleRecording}
+                    disabled={isTyping || isDisabled}
+                    aria-label={isRecording ? "Stop recording" : "Start recording"}
+                    title={isRecording ? "Stop recording" : "Start recording"}
+                    className={`h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-300 ${
+                      isRecording ? "text-rose-500" : ""
+                    }`}
+                  >
+                    {isRecording ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={!inputText.trim() || isTyping || isDisabled}
+                    className="
+                      h-11 w-11 rounded-full
+                      bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700
+                      disabled:from-slate-300 disabled:to-slate-400 dark:disabled:from-slate-700 dark:disabled:to-slate-600
+                      text-white shadow-lg hover:shadow-xl
+                      transition-all duration-300 transform hover:scale-105 active:scale-95
+                    "
+                    aria-label="Send message"
+                    title="Send message"
+                  >
+                    {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-3 text-xs text-center text-slate-500 dark:text-slate-400 max-w-3xl mx-auto">
-            Press{" "}
-            <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono border border-slate-200 dark:border-slate-700">
-              Enter
-            </kbd>{" "}
-            to send •{" "}
-            <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono border border-slate-200 dark:border-slate-700 ml-1">
-              Shift+Enter
-            </kbd>{" "}
-            for new line
-          </div>
-        </form>
+            <div className="mt-3 text-xs text-center text-slate-500 dark:text-slate-400 max-w-3xl mx-auto">
+              Press{" "}
+              <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono border border-slate-200 dark:border-slate-700 transition-colors duration-300">
+                Enter
+              </kbd>{" "}
+              to send •{" "}
+              <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-mono border border-slate-200 dark:border-slate-700 ml-1 transition-colors duration-300">
+                Shift+Enter
+              </kbd>{" "}
+              for new line
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

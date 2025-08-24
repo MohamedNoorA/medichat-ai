@@ -28,7 +28,7 @@ export function ChatArea() {
     addConversation,
     updateConversation,
     user,
-    isSidebarOpen, // Add this to detect sidebar state
+    isSidebarOpen,
   } = useDashboardStore()
 
   const [input, setInput] = useState("")
@@ -183,7 +183,7 @@ export function ChatArea() {
                 bg-white/70 dark:bg-slate-800/60 backdrop-blur
                 hover:bg-white dark:hover:bg-slate-800
                 border-slate-200/70 dark:border-slate-700
-                rounded-2xl transition-all duration-200
+                rounded-2xl transition-all duration-300
                 hover:shadow-sm hover:scale-[1.02]
               "
               onClick={() => handleSendMessage(it.prompt)}
@@ -211,6 +211,7 @@ export function ChatArea() {
       className="
         absolute inset-0 -z-10
         bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900
+        transition-colors duration-300
       "
       aria-hidden="true"
     />
@@ -219,10 +220,10 @@ export function ChatArea() {
   // Show empty state if no conversation is selected
   if (!currentConversationId) {
     return (
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative flex-1 flex flex-col h-full">
         <Background />
         <EmptyState />
-        <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-t border-slate-200 dark:border-slate-800">
+        <div className="sticky bottom-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-t border-slate-200 dark:border-slate-800">
           <InputBar value={input} onChange={setInput} onSend={handleSendMessage} disabled={isTyping} />
         </div>
       </div>
@@ -233,14 +234,10 @@ export function ChatArea() {
     <div className="relative flex-1 flex flex-col h-full">
       <Background />
 
-      {/* Messages Container - Centered when sidebar is closed */}
-      <div
-        className={`flex-1 overflow-y-auto custom-scrollbar transition-all duration-300 ${
-          !isSidebarOpen ? "flex justify-center" : ""
-        }`}
-      >
+      {/* Messages Container - Scrollable area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div
-          className={`w-full space-y-4 transition-all duration-300 ${!isSidebarOpen ? "max-w-4xl p-6" : "p-3 sm:p-4"}`}
+          className={`w-full space-y-4 transition-all duration-300 ${!isSidebarOpen ? "max-w-4xl mx-auto p-6" : "p-3 sm:p-4"}`}
         >
           {isLoadingMessages ? (
             <div className="flex justify-center items-center py-8">
@@ -293,8 +290,8 @@ export function ChatArea() {
         </div>
       </div>
 
-      {/* Input Bar Container */}
-      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-t border-slate-200 dark:border-slate-800">
+      {/* Input Bar Container - Sticky bottom */}
+      <div className="sticky bottom-0 bg-white/70 dark:bg-slate-900/60 backdrop-blur border-t border-slate-200 dark:border-slate-800">
         <InputBar value={input} onChange={setInput} onSend={handleSendMessage} disabled={isTyping} />
       </div>
     </div>

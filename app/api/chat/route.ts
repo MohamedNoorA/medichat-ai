@@ -27,39 +27,145 @@ Crisis Resources to provide when needed:
 
 Always prioritize user safety and well-being in your responses.`
 
-// Emotion detection keywords
+// Enhanced emotion detection keywords with more nuanced patterns
 const EMOTION_KEYWORDS = {
-  happy: ["happy", "joy", "excited", "great", "wonderful", "amazing", "fantastic", "good"],
-  sad: ["sad", "depressed", "down", "low", "unhappy", "miserable", "heartbroken"],
-  anxious: ["anxious", "worried", "nervous", "panic", "stress", "overwhelmed", "scared"],
-  angry: ["angry", "mad", "furious", "frustrated", "irritated", "annoyed"],
-  lonely: ["lonely", "alone", "isolated", "disconnected", "abandoned"],
-  confused: ["confused", "lost", "uncertain", "unclear", "mixed up"],
-  hopeful: ["hopeful", "optimistic", "positive", "confident", "motivated"],
-  tired: ["tired", "exhausted", "drained", "weary", "burnt out"],
+  happy: [
+    "happy",
+    "joy",
+    "excited",
+    "great",
+    "wonderful",
+    "amazing",
+    "fantastic",
+    "good",
+    "cheerful",
+    "delighted",
+    "thrilled",
+    "content",
+    "pleased",
+    "elated",
+  ],
+  sad: [
+    "sad",
+    "depressed",
+    "down",
+    "low",
+    "unhappy",
+    "miserable",
+    "heartbroken",
+    "devastated",
+    "grief",
+    "mourning",
+    "melancholy",
+    "blue",
+    "dejected",
+  ],
+  anxious: [
+    "anxious",
+    "worried",
+    "nervous",
+    "panic",
+    "stress",
+    "overwhelmed",
+    "scared",
+    "fearful",
+    "tense",
+    "restless",
+    "uneasy",
+    "apprehensive",
+    "frantic",
+  ],
+  angry: [
+    "angry",
+    "mad",
+    "furious",
+    "frustrated",
+    "irritated",
+    "annoyed",
+    "rage",
+    "livid",
+    "outraged",
+    "resentful",
+    "bitter",
+    "hostile",
+  ],
+  lonely: [
+    "lonely",
+    "alone",
+    "isolated",
+    "disconnected",
+    "abandoned",
+    "empty",
+    "solitary",
+    "withdrawn",
+    "excluded",
+    "rejected",
+  ],
+  confused: [
+    "confused",
+    "lost",
+    "uncertain",
+    "unclear",
+    "mixed up",
+    "bewildered",
+    "puzzled",
+    "disoriented",
+    "perplexed",
+  ],
+  hopeful: [
+    "hopeful",
+    "optimistic",
+    "positive",
+    "confident",
+    "motivated",
+    "encouraged",
+    "inspired",
+    "uplifted",
+    "determined",
+  ],
+  tired: ["tired", "exhausted", "drained", "weary", "burnt out", "fatigued", "worn out", "depleted", "spent"],
+  excited: ["excited", "enthusiastic", "energetic", "pumped", "thrilled", "eager", "animated", "vibrant"],
+  neutral: ["okay", "fine", "alright", "normal", "average", "so-so", "meh"],
 }
 
-// Function to detect emotion from text
+// Function to detect emotion from text with improved accuracy
 function detectEmotion(text: string): { emotion: string; confidence: number } {
   const lowerText = text.toLowerCase()
-  let maxMatches = 0
-  let detectedEmotion = "neutral"
+  const emotionScores: Record<string, number> = {}
 
+  // Calculate weighted scores for each emotion
   for (const [emotion, keywords] of Object.entries(EMOTION_KEYWORDS)) {
-    const matches = keywords.filter((keyword) => lowerText.includes(keyword)).length
-    if (matches > maxMatches) {
-      maxMatches = matches
-      detectedEmotion = emotion
+    let score = 0
+    for (const keyword of keywords) {
+      const regex = new RegExp(`\\b${keyword}\\b`, "gi")
+      const matches = lowerText.match(regex)
+      if (matches) {
+        // Weight longer keywords higher and account for frequency
+        score += matches.length * (keyword.length > 4 ? 2 : 1)
+      }
+    }
+    if (score > 0) {
+      emotionScores[emotion] = score
     }
   }
 
-  // Calculate confidence based on matches
-  const confidence = maxMatches > 0 ? Math.min(85 + maxMatches * 5, 95) : 70
+  // Find the emotion with the highest score
+  const sortedEmotions = Object.entries(emotionScores).sort(([, a], [, b]) => b - a)
 
-  return { emotion: detectedEmotion, confidence }
+  if (sortedEmotions.length === 0) {
+    return { emotion: "neutral", confidence: 70 }
+  }
+
+  const [topEmotion, topScore] = sortedEmotions[0]
+  const totalScore = Object.values(emotionScores).reduce((sum, score) => sum + score, 0)
+
+  // Calculate confidence based on dominance of top emotion
+  const confidence = Math.min(95, Math.max(75, Math.round((topScore / totalScore) * 100)))
+
+  return { emotion: topEmotion, confidence }
 }
 
-// Function to check for crisis keywords
+// Enhanced crisis detection with more comprehensive patterns
 function detectCrisis(text: string): boolean {
   const crisisKeywords = [
     "suicide",
@@ -71,6 +177,15 @@ function detectCrisis(text: string): boolean {
     "no point living",
     "better off dead",
     "end it all",
+    "take my own life",
+    "can't go on",
+    "want to disappear",
+    "wish I was dead",
+    "planning to die",
+    "cutting myself",
+    "overdose",
+    "jump off",
+    "hang myself",
   ]
 
   const lowerText = text.toLowerCase()
@@ -134,19 +249,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
     }
 
-    // Save user message to database
+    // Enhanced emotion and crisis detection
+    const emotionAnalysis = detectEmotion(message)
+    const isCrisis = detectCrisis(message)
+
+    console.log("Enhanced emotion analysis:", emotionAnalysis)
+    console.log("Crisis detected:", isCrisis)
+
+    // Save user message to database with enhanced emotion data
     const userMessage = {
       conversationId: new ObjectId(conversationId),
       userId: new ObjectId(decoded.userId),
       content: message.trim(),
       sender: "user",
       timestamp: new Date(),
-      emotion: null,
+      emotion: {
+        detected: emotionAnalysis.emotion,
+        confidence: emotionAnalysis.confidence,
+      },
     }
 
+    console.log("Saving user message with emotion:", userMessage.emotion)
     await messagesCollection.insertOne(userMessage)
 
-    // Get recent conversation history for context
+    // Get recent conversation history for better context
     const recentMessages = await messagesCollection
       .find({
         conversationId: new ObjectId(conversationId),
@@ -159,42 +285,36 @@ export async function POST(request: NextRequest) {
     // Reverse to get chronological order
     const conversationHistory = recentMessages.reverse()
 
-    // Detect emotion and crisis
-    const emotionAnalysis = detectEmotion(message)
-    const isCrisis = detectCrisis(message)
-
-    console.log("Emotion analysis:", emotionAnalysis)
-    console.log("Crisis detected:", isCrisis)
-
     // Get the generative model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-    // Build conversation context
+    // Build enhanced conversation context
     let conversationContext = SYSTEM_PROMPT + "\n\n"
 
-    // Add recent conversation history
+    // Add recent conversation history with emotion context
     if (conversationHistory.length > 1) {
       conversationContext += "Recent conversation context:\n"
       conversationHistory.slice(0, -1).forEach((msg: any) => {
-        conversationContext += `${msg.sender === "user" ? "User" : "AI"}: ${msg.content}\n`
+        const emotionInfo = msg.emotion?.detected ? ` [Emotion: ${msg.emotion.detected}]` : ""
+        conversationContext += `${msg.sender === "user" ? "User" : "AI"}: ${msg.content}${emotionInfo}\n`
       })
       conversationContext += "\n"
     }
 
-    // Add emotion context
+    // Add enhanced emotion context
     if (emotionAnalysis.emotion !== "neutral") {
-      conversationContext += `The user seems to be feeling ${emotionAnalysis.emotion}. Please respond with appropriate empathy and support for this emotional state.\n\n`
+      conversationContext += `The user is currently feeling ${emotionAnalysis.emotion} with ${emotionAnalysis.confidence}% confidence. Please respond with appropriate empathy and support for this emotional state.\n\n`
     }
 
     // Add crisis context if detected
     if (isCrisis) {
-      conversationContext += `IMPORTANT: The user may be in crisis. Please provide immediate support and crisis resources.\n\n`
+      conversationContext += `CRITICAL: The user may be in crisis or expressing suicidal thoughts. Please provide immediate support, crisis resources, and encourage professional help. This is a priority response.\n\n`
     }
 
-    // Add current user message
-    conversationContext += `Current user message: ${message}\n\nPlease respond as Medichat-AI:`
+    // Add current user message with emotion context
+    conversationContext += `Current user message [Emotion: ${emotionAnalysis.emotion}, Confidence: ${emotionAnalysis.confidence}%]: ${message}\n\nPlease respond as Medichat-AI with empathy and appropriate support:`
 
-    console.log("Sending request to Gemini AI...")
+    console.log("Sending enhanced request to Gemini AI...")
 
     // Generate AI response
     const result = await model.generateContent(conversationContext)
@@ -203,7 +323,7 @@ export async function POST(request: NextRequest) {
 
     console.log("Received AI response:", aiResponse.substring(0, 100) + "...")
 
-    // Save AI response to database
+    // Save AI response to database with enhanced metadata
     const aiMessage = {
       conversationId: new ObjectId(conversationId),
       userId: new ObjectId(decoded.userId),
@@ -213,6 +333,12 @@ export async function POST(request: NextRequest) {
       emotion: {
         detected: emotionAnalysis.emotion,
         confidence: emotionAnalysis.confidence,
+      },
+      aiResponse: {
+        model: "gemini-1.5-flash",
+        processingTime: Date.now(),
+        isCrisis: isCrisis,
+        userEmotionDetected: emotionAnalysis.emotion,
       },
     }
 
@@ -227,24 +353,30 @@ export async function POST(request: NextRequest) {
       },
     )
 
-    // Update conversation title if it's still "New Chat"
-    if (conversation.title === "New Chat") {
-      const title = message.length > 50 ? message.substring(0, 47) + "..." : message
+    // Update conversation title if it's still "New Chat" and message is suitable
+    if (conversation.title === "New Chat" && message.length <= 50 && message.length > 5) {
+      const title = message.length > 47 ? message.substring(0, 44) + "..." : message
       await conversationsCollection.updateOne({ _id: new ObjectId(conversationId) }, { $set: { title: title } })
     }
 
-    // Return response with metadata
+    // Return enhanced response with metadata
     return NextResponse.json({
       response: aiResponse,
       emotion: emotionAnalysis.emotion,
       confidence: emotionAnalysis.confidence,
       isCrisis: isCrisis,
       timestamp: new Date().toISOString(),
+      aiMetadata: {
+        model: "gemini-1.5-flash",
+        emotionDetected: emotionAnalysis.emotion,
+        confidenceLevel: emotionAnalysis.confidence,
+        crisisDetected: isCrisis,
+      },
     })
   } catch (error) {
     console.error("Gemini API Error:", error)
 
-    // Return a fallback response
+    // Return a fallback response with crisis resources if needed
     return NextResponse.json(
       {
         response:
@@ -253,6 +385,7 @@ export async function POST(request: NextRequest) {
         confidence: 70,
         isCrisis: false,
         error: "AI service temporarily unavailable",
+        timestamp: new Date().toISOString(),
       },
       { status: 200 },
     )
@@ -261,5 +394,12 @@ export async function POST(request: NextRequest) {
 
 // Handle other HTTP methods
 export async function GET() {
-  return NextResponse.json({ message: "Medichat-AI Chat API - Use POST to send messages" }, { status: 200 })
+  return NextResponse.json(
+    {
+      message: "Medichat-AI Chat API - Use POST to send messages",
+      status: "operational",
+      version: "2.0.0",
+    },
+    { status: 200 },
+  )
 }

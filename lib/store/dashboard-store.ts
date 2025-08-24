@@ -25,8 +25,8 @@ interface DashboardState {
   toggleDarkMode: () => void
 
   // Navigation state
-  activeTab: "chat" | "history" | "settings" | "mood" | "resources"
-  setActiveTab: (tab: "chat" | "history" | "settings" | "mood" | "resources") => void
+  activeTab: "chat" | "history" | "settings" | "mood" | "resources" | "insights" | "contacts"
+  setActiveTab: (tab: "chat" | "history" | "settings" | "mood" | "resources" | "insights" | "contacts") => void
 
   // Chat state
   conversations: ConversationResponse[]
@@ -65,6 +65,9 @@ interface DashboardState {
 
   // Initialize user data
   initializeUser: () => Promise<void>
+
+  // Keyboard shortcut handler
+  toggleSidebarShortcut: () => void
 }
 
 export const useDashboardStore = create<DashboardState>()(
@@ -181,6 +184,12 @@ export const useDashboardStore = create<DashboardState>()(
           localStorage.removeItem("user")
           localStorage.removeItem("medichat-dashboard")
         }
+      },
+
+      // Keyboard shortcut handler
+      toggleSidebarShortcut: () => {
+        const { isSidebarOpen, setSidebarOpen } = get()
+        setSidebarOpen(!isSidebarOpen)
       },
     }),
     {

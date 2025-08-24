@@ -18,6 +18,8 @@ import {
   Heart,
   X,
   Menu,
+  Brain,
+  Phone,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -150,15 +152,14 @@ export function Sidebar() {
 
       <aside
         className={`
-          fixed left-0 top-0 h-full w-80
+          fixed left-0 top-0 h-screen w-80
           bg-white/85 dark:bg-slate-900/80 backdrop-blur-md
           border-r border-slate-200/70 dark:border-slate-800
-          z-50 transform transition-all duration-300 ease-in-out
+          z-50 transform transition-transform duration-300 ease-in-out
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          md:relative md:z-auto
-          ${!isSidebarOpen ? "md:-translate-x-full md:w-0 md:min-w-0 md:overflow-hidden" : "md:translate-x-0"}
           flex flex-col
         `}
+        style={{ willChange: "transform" }}
       >
         {/* Title / Menu (always visible) */}
         <div className="p-3 border-b border-slate-200/70 dark:border-slate-800 flex items-center justify-between">
@@ -171,22 +172,12 @@ export function Sidebar() {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-300"
             onClick={() => setSidebarOpen(false)}
             aria-label="Close sidebar"
-            title="Close sidebar"
+            title="Close sidebar (Ctrl+B)"
           >
             <X className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden md:inline-flex hover:bg-slate-100 dark:hover:bg-slate-800"
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            aria-label="Toggle sidebar"
-            title={isSidebarOpen ? "Collapse sidebar (Ctrl+B)" : "Expand sidebar (Ctrl+B)"}
-          >
-            <Menu className="h-4 w-4" />
           </Button>
         </div>
 
@@ -197,16 +188,25 @@ export function Sidebar() {
               variant={activeTab === "chat" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("chat")}
-              className={`justify-start ${activeTab === "chat" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+              className={`justify-start transition-colors duration-300 ${activeTab === "chat" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Chat
             </Button>
             <Button
+              variant={activeTab === "insights" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("insights")}
+              className={`justify-start transition-colors duration-300 ${activeTab === "insights" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              Insights
+            </Button>
+            <Button
               variant={activeTab === "history" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("history")}
-              className={`justify-start ${activeTab === "history" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+              className={`justify-start transition-colors duration-300 ${activeTab === "history" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
             >
               <History className="h-4 w-4 mr-2" />
               History
@@ -215,16 +215,27 @@ export function Sidebar() {
               variant={activeTab === "mood" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("mood")}
-              className={`justify-start ${activeTab === "mood" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+              className={`justify-start transition-colors duration-300 ${activeTab === "mood" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
             >
               <Heart className="h-4 w-4 mr-2" />
               Mood
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Button
+              variant={activeTab === "contacts" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("contacts")}
+              className={`justify-start transition-colors duration-300 ${activeTab === "contacts" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Contacts
             </Button>
             <Button
               variant={activeTab === "settings" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("settings")}
-              className={`justify-start ${activeTab === "settings" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
+              className={`justify-start transition-colors duration-300 ${activeTab === "settings" ? "bg-white dark:bg-slate-800 shadow-sm" : ""}`}
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings
@@ -236,7 +247,7 @@ export function Sidebar() {
         <div className="p-3 border-b border-slate-200/70 dark:border-slate-800">
           <Button
             onClick={handleNewChat}
-            className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white shadow-sm"
+            className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white shadow-sm transition-all duration-300"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Chat
@@ -251,7 +262,7 @@ export function Sidebar() {
               placeholder="Search conversations…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 transition-colors duration-300"
               aria-label="Search conversations"
             />
           </div>
@@ -272,7 +283,7 @@ export function Sidebar() {
                 <div
                   key={conversation._id}
                   className={`
-                    group relative p-3 rounded-xl cursor-pointer transition-all
+                    group relative p-3 rounded-xl cursor-pointer transition-all duration-300
                     ring-1
                     ${
                       currentConversationId === conversation._id
@@ -321,7 +332,7 @@ export function Sidebar() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-7 w-7 p-0 hover:bg-slate-100 dark:hover:bg-slate-700"
                           onClick={(e) => e.stopPropagation()}
                           aria-label="Conversation actions"
                         >
@@ -349,6 +360,20 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+
+      {/* Hamburger toggle button - visible on all screen sizes */}
+      {!isSidebarOpen && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setSidebarOpen(true)}
+          className="fixed left-3 top-3 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-slate-200 dark:border-slate-700 shadow-lg transition-all duration-300"
+          aria-label="Open sidebar"
+          title="Open sidebar (Ctrl+B)"
+        >
+          <Menu className="w-4 h-4" />
+        </Button>
+      )}
     </>
   )
 }
