@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { useDashboardStore } from "@/lib/store/dashboard-store"
 export default function LoginPage() {
   const router = useRouter()
   const { clearAll } = useDashboardStore()
+  const formRef = useRef<HTMLFormElement>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,17 +23,112 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
-  // Clear all data when component mounts (user navigated to login)
+  // Automatic form clearing function
+  const clearForm = () => {
+    setFormData({
+      email: "",
+      password: "",
+    })
+    setShowPassword(false)
+    setError("")
+    setSuccess("")
+
+    // Clear HTML form elements directly
+    if (formRef.current) {
+      formRef.current.reset()
+    }
+
+    // Clear any browser autofill or cached data
+    const inputs = document.querySelectorAll('input[type="email"], input[type="password"], input[type="text"]')
+    inputs.forEach((input: any) => {
+      input.value = ""
+      input.defaultValue = ""
+    })
+  }
+
+  // Clear all data and form when component mounts
   useEffect(() => {
-    console.log("Login page mounted - clearing all user data")
+    console.log("Login page mounted - clearing all user data and form")
     clearAll()
 
-    // Clear localStorage
+    // Clear localStorage completely
     if (typeof window !== "undefined") {
-      localStorage.removeItem("user")
-      localStorage.removeItem("medichat-dashboard")
+      localStorage.clear()
+      sessionStorage.clear()
     }
+
+    // Clear form immediately
+    clearForm()
+
+    // Additional clearing after a brief delay to ensure everything is cleared
+    const timeoutId = setTimeout(() => {
+      clearForm()
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
   }, [clearAll])
+
+  // Clear form when user navigates away and comes back
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearForm()
+      }
+    }
+
+    const handleFocus = () => {
+      clearForm()
+    }
+
+    const handleBeforeUnload = () => {
+      clearForm()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", handleFocus)
+    window.addEventListener("beforeunload", handleBeforeUnload)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", handleFocus)
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
+  }, [])
+
+  // Clear form when component unmounts
+  useEffect(() => {
+    return () => {
+      clearForm()
+    }
+  }, [])
+
+  // Auto-clear form periodically when idle
+  useEffect(() => {
+    let idleTimer: NodeJS.Timeout
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer)
+      idleTimer = setTimeout(() => {
+        if (!isLoading && !formData.email && !formData.password) {
+          clearForm()
+        }
+      }, 30000) // Clear after 30 seconds of inactivity if form is empty
+    }
+
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"]
+    events.forEach((event) => {
+      document.addEventListener(event, resetIdleTimer, true)
+    })
+
+    resetIdleTimer()
+
+    return () => {
+      clearTimeout(idleTimer)
+      events.forEach((event) => {
+        document.removeEventListener(event, resetIdleTimer, true)
+      })
+    }
+  }, [isLoading, formData.email, formData.password])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -42,16 +138,7 @@ export default function LoginPage() {
     }))
     // Clear error when user starts typing
     if (error) setError("")
-  }
-
-  const clearForm = () => {
-    setFormData({
-      email: "",
-      password: "",
-    })
-    setShowPassword(false)
-    setError("")
-    setSuccess("")
+    if (success) setSuccess("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,7 +172,7 @@ export default function LoginPage() {
       setSuccess("Login successful! Redirecting...")
       toast.success("Welcome back!")
 
-      // Clear the form after successful login
+      // Clear the form immediately after successful login
       clearForm()
 
       // Store user data in localStorage (only after successful login)
@@ -102,8 +189,21 @@ export default function LoginPage() {
       const errorMessage = error instanceof Error ? error.message : "Login failed"
       setError(errorMessage)
       toast.error(errorMessage)
+
+      // Clear form on error to ensure fresh start for next attempt
+      setTimeout(() => {
+        clearForm()
+      }, 3000)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Clear form when user clicks on input fields
+  const handleInputFocus = () => {
+    if (error || success) {
+      setError("")
+      setSuccess("")
     }
   }
 
@@ -134,7 +234,7 @@ export default function LoginPage() {
             <CardTitle className="text-2xl text-center text-slate-800">Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
@@ -146,9 +246,14 @@ export default function LoginPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  onFocus={handleInputFocus}
                   required
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Enter your email"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                 />
               </div>
 
@@ -164,9 +269,14 @@ export default function LoginPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     required
                     className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                     placeholder="Enter your password"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                   <button
                     type="button"
@@ -214,7 +324,7 @@ export default function LoginPage() {
               <div className="text-center pt-4">
                 <p className="text-sm text-slate-600">
                   Don't have an account?{" "}
-                  <Link href="/register" className="text-cyan-600 hover:text-cyan-700 font-medium">
+                  <Link href="/register" className="text-cyan-600 hover:text-cyan-700 font-medium" onClick={clearForm}>
                     Create one here
                   </Link>
                 </p>

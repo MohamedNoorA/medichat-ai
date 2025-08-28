@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { useDashboardStore } from "@/lib/store/dashboard-store"
 export default function RegisterPage() {
   const router = useRouter()
   const { clearAll } = useDashboardStore()
+  const formRef = useRef<HTMLFormElement>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,27 +26,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
-  // Clear all data when component mounts
-  useEffect(() => {
-    console.log("Register page mounted - clearing all user data")
-    clearAll()
-
-    // Clear localStorage
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("user")
-      localStorage.removeItem("medichat-dashboard")
-    }
-  }, [clearAll])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-    if (error) setError("")
-  }
-
+  // Automatic form clearing function
   const clearForm = () => {
     setFormData({
       name: "",
@@ -57,6 +38,112 @@ export default function RegisterPage() {
     setShowConfirmPassword(false)
     setError("")
     setSuccess("")
+
+    // Clear HTML form elements directly
+    if (formRef.current) {
+      formRef.current.reset()
+    }
+
+    // Clear any browser autofill or cached data
+    const inputs = document.querySelectorAll('input[type="email"], input[type="password"], input[type="text"]')
+    inputs.forEach((input: any) => {
+      input.value = ""
+      input.defaultValue = ""
+    })
+  }
+
+  // Clear all data and form when component mounts
+  useEffect(() => {
+    console.log("Register page mounted - clearing all user data and form")
+    clearAll()
+
+    // Clear localStorage completely
+    if (typeof window !== "undefined") {
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+
+    // Clear form immediately
+    clearForm()
+
+    // Additional clearing after a brief delay to ensure everything is cleared
+    const timeoutId = setTimeout(() => {
+      clearForm()
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [clearAll])
+
+  // Clear form when user navigates away and comes back
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearForm()
+      }
+    }
+
+    const handleFocus = () => {
+      clearForm()
+    }
+
+    const handleBeforeUnload = () => {
+      clearForm()
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", handleFocus)
+    window.addEventListener("beforeunload", handleBeforeUnload)
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", handleFocus)
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+    }
+  }, [])
+
+  // Clear form when component unmounts
+  useEffect(() => {
+    return () => {
+      clearForm()
+    }
+  }, [])
+
+  // Auto-clear form periodically when idle
+  useEffect(() => {
+    let idleTimer: NodeJS.Timeout
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimer)
+      idleTimer = setTimeout(() => {
+        if (!isLoading && !formData.name && !formData.email && !formData.password && !formData.confirmPassword) {
+          clearForm()
+        }
+      }, 30000) // Clear after 30 seconds of inactivity if form is empty
+    }
+
+    const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart"]
+    events.forEach((event) => {
+      document.addEventListener(event, resetIdleTimer, true)
+    })
+
+    resetIdleTimer()
+
+    return () => {
+      clearTimeout(idleTimer)
+      events.forEach((event) => {
+        document.removeEventListener(event, resetIdleTimer, true)
+      })
+    }
+  }, [isLoading, formData.name, formData.email, formData.password, formData.confirmPassword])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    if (error) setError("")
+    if (success) setSuccess("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,7 +177,7 @@ export default function RegisterPage() {
       setSuccess("Account created successfully! Redirecting to chat...")
       toast.success("Welcome to MediChat AI!")
 
-      // Clear the form after successful registration
+      // Clear the form immediately after successful registration
       clearForm()
 
       // Store user data in localStorage
@@ -104,8 +191,21 @@ export default function RegisterPage() {
       const errorMessage = error instanceof Error ? error.message : "Registration failed"
       setError(errorMessage)
       toast.error(errorMessage)
+
+      // Clear form on error to ensure fresh start for next attempt
+      setTimeout(() => {
+        clearForm()
+      }, 3000)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Clear form when user clicks on input fields
+  const handleInputFocus = () => {
+    if (error || success) {
+      setError("")
+      setSuccess("")
     }
   }
 
@@ -136,7 +236,7 @@ export default function RegisterPage() {
             <CardTitle className="text-2xl text-center text-slate-800">Create Account</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name Field */}
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700 mb-2">
@@ -148,9 +248,14 @@ export default function RegisterPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  onFocus={handleInputFocus}
                   required
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Enter your full name"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                 />
               </div>
 
@@ -165,9 +270,14 @@ export default function RegisterPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  onFocus={handleInputFocus}
                   required
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                   placeholder="Enter your email"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                 />
               </div>
 
@@ -183,9 +293,14 @@ export default function RegisterPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     required
                     className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                     placeholder="Create a strong password"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                   <button
                     type="button"
@@ -212,9 +327,14 @@ export default function RegisterPage() {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
+                    onFocus={handleInputFocus}
                     required
                     className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
                     placeholder="Confirm your password"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
                   />
                   <button
                     type="button"
@@ -262,7 +382,7 @@ export default function RegisterPage() {
               <div className="text-center pt-4">
                 <p className="text-sm text-slate-600">
                   Already have an account?{" "}
-                  <Link href="/login" className="text-cyan-600 hover:text-cyan-700 font-medium">
+                  <Link href="/login" className="text-cyan-600 hover:text-cyan-700 font-medium" onClick={clearForm}>
                     Sign in here
                   </Link>
                 </p>
